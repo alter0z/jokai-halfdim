@@ -27,6 +27,7 @@ import {
   userCarts,
 } from '@/bot/interactions/order';
 import { processOutbox } from '@/bot/jobs/outbox';
+import { checkOverdueOrders } from '@/bot/jobs/overdue';
 
 export const allCommands = [
   ...priceCommands,
@@ -52,6 +53,11 @@ client.on('ready', () => {
   setInterval(() => {
     processOutbox(client).catch(err => console.error('[Outbox] Error:', err));
   }, 5000);
+
+  // Start overdue orders check every 60 seconds
+  setInterval(() => {
+    checkOverdueOrders(client).catch(err => console.error('[OverdueJob] Error:', err));
+  }, 60000);
 });
 
 client.on('interactionCreate', async interaction => {
