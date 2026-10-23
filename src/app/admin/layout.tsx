@@ -46,6 +46,7 @@ export default function AdminLayout({
     { label: 'Catalog & Pricing', href: '/admin/catalog', active: pathname.startsWith('/admin/catalog') },
     { label: 'Customers', href: '/admin/customers', active: pathname.startsWith('/admin/customers') },
     { label: 'Shop Settings', href: '/admin/settings', active: pathname.startsWith('/admin/settings') },
+    { label: 'Guide & SOP', href: '/admin/guide', active: pathname.startsWith('/admin/guide') },
   ];
 
   return (

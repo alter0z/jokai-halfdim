@@ -49,12 +49,21 @@ export default function HomePage() {
             <span>Admin Authentication</span>
           </a>
 
-          <a
-            href="/admin/catalog"
-            className="block text-xs text-[#86868b] hover:text-[#1d1d1f] pt-2 transition tracking-tight"
-          >
-            Browse Public Catalog & Pricing &rarr;
-          </a>
+          <div className="flex items-center justify-center gap-4 pt-2 text-xs text-[#86868b]">
+            <a
+              href="/admin/catalog"
+              className="hover:text-[#1d1d1f] transition tracking-tight"
+            >
+              Services & Pricing &rarr;
+            </a>
+            <span>&bull;</span>
+            <a
+              href="/admin/guide"
+              className="hover:text-[#1d1d1f] transition tracking-tight"
+            >
+              Piloting Guide & SOP &rarr;
+            </a>
+          </div>
         </div>
 
         {/* Status Pill Footer */}
