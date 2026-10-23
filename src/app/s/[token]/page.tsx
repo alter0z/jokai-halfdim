@@ -8,8 +8,11 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useParams } from 'next/navigation';
 
-export default function SecureLoginForm({ params }: { params: { token: string } }) {
+export default function SecureLoginForm() {
+  const params = useParams();
+  const token = params.token as string;
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [agreed, setAgreed] = useState(false);
@@ -24,7 +27,7 @@ export default function SecureLoginForm({ params }: { params: { token: string } 
     }
 
     try {
-      const res = await fetch(`/api/s/${params.token}`, {
+      const res = await fetch(`/api/s/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),

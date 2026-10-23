@@ -1,70 +1,109 @@
 /**
- * Jokai bot entry point
+ * Jokai Halfdim Discord Bot
  *
- * discord.js client with command/interaction handlers
+ * Full interaction routing, commands registration, and outbox queue polling.
  */
 
-import { Client, GatewayIntentBits, Collection } from 'discord.js';
+import {
+  Client,
+  GatewayIntentBits,
+  REST,
+  Routes,
+  ChatInputCommandInteraction,
+  StringSelectMenuInteraction,
+  ModalSubmitInteraction,
+  ButtonInteraction,
+} from 'discord.js';
+import { commands as priceCommands, handlePriceCommand, handlePriceListCommand, handleBuildCommand } from '@/bot/commands/price';
+import { guideCommand, handleGuideCommand, handleGuideSelect } from '@/bot/commands/guide';
+import { orderCommands, handleOrderCommand, handleStatusCommand, handleCancelCommand } from '@/bot/commands/order';
+import {
+  handleServiceSelect,
+  handleRegionSelect,
+  handleExplorationAreasSelect,
+  handleExplorationModalSubmit,
+  handleItemsSelect,
+  handleCheckout,
+  userCarts,
+} from '@/bot/interactions/order';
+import { processOutbox } from '@/bot/jobs/outbox';
 
-const client = new Client({
+export const allCommands = [
+  ...priceCommands,
+  guideCommand.toJSON(),
+  ...orderCommands.map(c => c.toJSON()),
+];
+
+export const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.DirectMessages,
-    GatewayIntentBits.MessageContent,
   ],
 });
 
-declare global {
-  namespace Express {
-    interface Application {
-      discordClient: Client;
-    }
-  }
-}
-
-// TODO: Load commands and interactions
-// TODO: Set up event listeners
-// TODO: Load jobs (timers)
-
 client.on('ready', () => {
-  console.log(`Bot logged in as ${client.user?.tag}`);
+  console.log(`[Bot] Logged in as ${client.user?.tag}`);
   if (client.user) {
-    client.user.setActivity('for /price', { type: 'WATCHING' });
+    client.user.setActivity('Genshin Piloting (/price)', { type: 3 }); // WATCHING
   }
+
+  // Start background outbox polling every 5 seconds
+  setInterval(() => {
+    processOutbox(client).catch(err => console.error('[Outbox] Error:', err));
+  }, 5000);
 });
 
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isCommand() && !interaction.isButton() && !interaction.isStringSelectMenu()) {
-    return;
-  }
-
   try {
-    // TODO: Route to command/interaction handlers
-    console.log(`Received interaction: ${interaction.id}`);
+    if (interaction.isChatInputCommand()) {
+      const { commandName } = interaction;
+      if (commandName === 'price') await handlePriceCommand(interaction);
+      else if (commandName === 'price-list') await handlePriceListCommand(interaction);
+      else if (commandName === 'build') await handleBuildCommand(interaction);
+      else if (commandName === 'guide') await handleGuideCommand(interaction);
+      else if (commandName === 'order') await handleOrderCommand(interaction);
+      else if (commandName === 'status') await handleStatusCommand(interaction);
+      else if (commandName === 'cancel') await handleCancelCommand(interaction);
+    } else if (interaction.isStringSelectMenu()) {
+      const { customId } = interaction;
+      if (customId === 'guide_menu') await handleGuideSelect(interaction);
+      else if (customId === 'price_select_service' || customId === 'order_select_service') await handleServiceSelect(interaction);
+      else if (customId === 'price_select_region') await handleRegionSelect(interaction);
+      else if (customId === 'price_select_exploration_areas') await handleExplorationAreasSelect(interaction);
+      else if (customId === 'price_select_items') await handleItemsSelect(interaction);
+    } else if (interaction.isModalSubmit()) {
+      if (interaction.customId.startsWith('modal_exploration_percents:')) {
+        await handleExplorationModalSubmit(interaction);
+      }
+    } else if (interaction.isButton()) {
+      if (interaction.customId === 'cart_checkout') {
+        await handleCheckout(interaction);
+      } else if (interaction.customId === 'cart_clear') {
+        userCarts.delete(interaction.user.id);
+        await interaction.update({ content: '🛒 Cart cleared.', embeds: [], components: [] });
+      }
+    }
   } catch (error) {
-    console.error('Error handling interaction:', error);
+    console.error('[Bot] Error handling interaction:', error);
+    if (interaction.isRepliable()) {
+      const msg = { content: '❌ An error occurred processing this request.', ephemeral: true };
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp(msg).catch(() => {});
+      } else {
+        await interaction.reply(msg).catch(() => {});
+      }
+    }
   }
 });
 
-// Login and start bot
-async function start() {
-  try {
-    const token = process.env.DISCORD_TOKEN;
-    if (!token) {
-      throw new Error('DISCORD_TOKEN not set in .env');
-    }
-
-    await client.login(token);
-    console.log('Bot started successfully');
-  } catch (error) {
-    console.error('Failed to start bot:', error);
-    process.exit(1);
+export async function registerAllCommands(clientId: string, token: string, guildId?: string) {
+  const rest = new REST({ version: '10' }).setToken(token);
+  if (guildId) {
+    await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: allCommands });
+  } else {
+    await rest.put(Routes.applicationCommands(clientId), { body: allCommands });
   }
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  start().catch(console.error);
 }
 
 export default client;

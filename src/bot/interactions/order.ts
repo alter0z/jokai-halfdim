@@ -10,6 +10,7 @@ import {
   StringSelectMenuInteraction,
   ModalSubmitInteraction,
   ActionRowBuilder,
+  StringSelectMenuBuilder,
   ButtonBuilder,
   ButtonStyle,
   ModalBuilder,
@@ -19,23 +20,22 @@ import {
   EmbedBuilder,
 } from 'discord.js';
 import { PrismaClient } from '@prisma/client';
-import { quote, validateCartItem } from '../../core/pricing.js';
-import { placeOrder, acceptOrder, declineOrder } from '../../core/orders.js';
+import { randomBytes, createHash } from 'crypto';
+import { quote, CartItem } from '../../core/pricing.js';
 import texts from '../texts.js';
 
 const prisma = new PrismaClient();
 
 // In-memory cart store per user (for Discord session before checkout)
-const userCarts = new Map<string, { catalogItemId: string; qty: number; statedPercent?: number }[]>();
+export const userCarts = new Map<string, CartItem[]>();
 
 /**
- * Handle service selection in /price
+ * Handle service selection
  */
 export async function handleServiceSelect(interaction: StringSelectMenuInteraction) {
   const serviceKey = interaction.values[0];
 
   if (serviceKey === 'exploration') {
-    // Show regions for exploration
     const regions = await prisma.region.findMany({
       where: { active: true, archivedAt: null },
       orderBy: { sort: 'asc' },
@@ -54,7 +54,6 @@ export async function handleServiceSelect(interaction: StringSelectMenuInteracti
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
     await interaction.update({ content: texts.price.selectRegion, components: [row] });
   } else if (serviceKey === 'archon_quest') {
-    // Show Archon quests
     const items = await prisma.catalogItem.findMany({
       where: { serviceKey: 'archon_quest', active: true, archivedAt: null },
       orderBy: { sort: 'asc' },
@@ -63,6 +62,8 @@ export async function handleServiceSelect(interaction: StringSelectMenuInteracti
     const select = new StringSelectMenuBuilder()
       .setCustomId('price_select_items')
       .setPlaceholder('Choose Archon Quests...')
+      .setMinValues(1)
+      .setMaxValues(Math.min(items.length, 25))
       .addOptions(
         items.slice(0, 25).map(i => ({
           label: i.name.substring(0, 100),
@@ -73,15 +74,16 @@ export async function handleServiceSelect(interaction: StringSelectMenuInteracti
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
     await interaction.update({ content: texts.price.selectItems, components: [row] });
   } else if (serviceKey === 'material') {
-    // Show materials
     const items = await prisma.catalogItem.findMany({
       where: { serviceKey: 'material', active: true, archivedAt: null },
       orderBy: { sort: 'asc' },
     });
 
     const select = new StringSelectMenuBuilder()
-      .setCustomId('price_select_material')
+      .setCustomId('price_select_items')
       .setPlaceholder('Choose material type...')
+      .setMinValues(1)
+      .setMaxValues(Math.min(items.length, 25))
       .addOptions(
         items.map(i => ({
           label: `${i.name} (Rp${i.price}/item)`,
@@ -133,9 +135,8 @@ export async function handleExplorationAreasSelect(interaction: StringSelectMenu
     where: { id: { in: selectedAreaIds } },
   });
 
-  // Open modal with multi-line text input for current percentages
   const modal = new ModalBuilder()
-    .setCustomId('price_modal_exploration_percents')
+    .setCustomId(`modal_exploration_percents:${selectedAreaIds.join(',')}`)
     .setTitle('Enter Current Percentage (%)');
 
   const defaultText = areas.map(a => `${a.name} = 0`).join('\n');
@@ -147,9 +148,246 @@ export async function handleExplorationAreasSelect(interaction: StringSelectMenu
     .setValue(defaultText.substring(0, 4000))
     .setRequired(true);
 
-  // Store selected IDs temporarily in user session or pass via custom state
-  // For MVP, we parse them in modal submit
   modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
-
   await interaction.showModal(modal);
+}
+
+/**
+ * Handle Exploration Modal Submit
+ */
+export async function handleExplorationModalSubmit(interaction: ModalSubmitInteraction) {
+  const customId = interaction.customId;
+  const areaIds = customId.replace('modal_exploration_percents:', '').split(',');
+  const input = interaction.fields.getTextInputValue('exploration_percents_input');
+
+  const areas = await prisma.catalogItem.findMany({
+    where: { id: { in: areaIds } },
+  });
+
+  const lines = input.split('\n');
+  const percentMap: Record<string, number> = {};
+
+  for (const line of lines) {
+    const parts = line.split('=');
+    if (parts.length >= 2) {
+      const name = parts[0].trim().toLowerCase();
+      const pct = parseInt(parts[1].replace(/[^0-9]/g, ''), 10);
+      if (!isNaN(pct)) {
+        percentMap[name] = Math.min(100, Math.max(0, pct));
+      }
+    }
+  }
+
+  // Get or initialize user's cart
+  const cart = userCarts.get(interaction.user.id) || [];
+
+  for (const area of areas) {
+    const stated = percentMap[area.name.toLowerCase()] ?? 0;
+    cart.push({
+      catalogItemId: area.id,
+      qty: 1,
+      statedPercent: stated,
+    });
+  }
+
+  userCarts.set(interaction.user.id, cart);
+  await renderCartQuote(interaction, cart);
+}
+
+/**
+ * Handle general item selection (Archon quest, materials)
+ */
+export async function handleItemsSelect(interaction: StringSelectMenuInteraction) {
+  const itemIds = interaction.values;
+  const cart = userCarts.get(interaction.user.id) || [];
+
+  for (const id of itemIds) {
+    cart.push({
+      catalogItemId: id,
+      qty: 1,
+    });
+  }
+
+  userCarts.set(interaction.user.id, cart);
+  await renderCartQuote(interaction, cart);
+}
+
+/**
+ * Render Cart & Quote Embed
+ */
+export async function renderCartQuote(
+  interaction: StringSelectMenuInteraction | ModalSubmitInteraction | ButtonInteraction,
+  cart: CartItem[]
+) {
+  const catalog = await prisma.catalogItem.findMany({
+    where: { active: true, archivedAt: null },
+  });
+
+  const catalogItems = catalog.map(c => ({
+    id: c.id,
+    serviceKey: c.serviceKey,
+    name: c.name,
+    price: c.price,
+    pricingType: c.pricingType as any,
+    minCharge: c.minCharge || undefined,
+    active: c.active,
+  }));
+
+  const quoteResult = quote(cart, catalogItems);
+
+  const embed = new EmbedBuilder()
+    .setTitle('🛒 Your Piloting Cart & Quote')
+    .setColor(0x5865f2)
+    .setDescription(
+      quoteResult.lines
+        .map(
+          l =>
+            `• **${l.name}**: Rp${l.totalPrice.toLocaleString('id-ID')} ${
+              l.statedPercent !== undefined ? `(${l.statedPercent}% → 100%)` : ''
+            }`
+        )
+        .join('\n') || 'Cart is empty.'
+    )
+    .addFields({
+      name: 'Total Estimate',
+      value: `**Rp${quoteResult.total.toLocaleString('id-ID')}**`,
+    })
+    .setFooter({ text: 'Customer payment is made AFTER work completion.' });
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId('cart_checkout')
+      .setLabel('Submit Order (Place in Queue)')
+      .setStyle(ButtonStyle.Success)
+      .setDisabled(quoteResult.lines.length === 0),
+    new ButtonBuilder()
+      .setCustomId('cart_clear')
+      .setLabel('Clear Cart')
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  if ('update' in interaction) {
+    await interaction.update({ content: '', embeds: [embed], components: [row] });
+  } else {
+    await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+  }
+}
+
+/**
+ * Handle Order Checkout / Submit
+ */
+export async function handleCheckout(interaction: ButtonInteraction) {
+  const cart = userCarts.get(interaction.user.id);
+  if (!cart || cart.length === 0) {
+    await interaction.reply({ content: 'Your cart is empty!', ephemeral: true });
+    return;
+  }
+
+  // Ensure user exists in database
+  let user = await prisma.user.findUnique({
+    where: { discordId: interaction.user.id },
+  });
+
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        discordId: interaction.user.id,
+        username: interaction.user.username,
+      },
+    });
+  }
+
+  if (user.blocked) {
+    await interaction.reply({
+      content: `❌ Your account is blocked: ${user.blockReason || 'Suspended'}`,
+      ephemeral: true,
+    });
+    return;
+  }
+
+  // Generate unique order code: JK-XXXX
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let code = 'JK-';
+  for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  const catalog = await prisma.catalogItem.findMany();
+  const catalogItems = catalog.map(c => ({
+    id: c.id,
+    serviceKey: c.serviceKey,
+    name: c.name,
+    price: c.price,
+    pricingType: c.pricingType as any,
+    minCharge: c.minCharge || undefined,
+    active: c.active,
+  }));
+  const quoteResult = quote(cart, catalogItems);
+
+  // Generate secure link token for credentials
+  const token = randomBytes(24).toString('hex');
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  const order = await prisma.$transaction(async tx => {
+    const ord = await tx.order.create({
+      data: {
+        code,
+        customerUserId: user!.id,
+        status: 'PENDING',
+        quoteTotal: quoteResult.total,
+        orderItems: {
+          create: quoteResult.lines.map(l => ({
+            catalogItemId: l.catalogItemId,
+            copiedName: l.name,
+            copiedPrice: l.totalPrice,
+            qty: l.qty,
+            statedPercent: l.statedPercent ?? null,
+          })),
+        },
+        orderEvents: {
+          create: {
+            toStatus: 'PENDING',
+            note: 'Order submitted via Discord bot',
+          },
+        },
+      },
+    });
+
+    await tx.secureLink.create({
+      data: {
+        orderId: ord.id,
+        tokenHash,
+        purpose: 'LOGIN_FORM',
+        expiresAt,
+      },
+    });
+
+    return ord;
+  });
+
+  // Clear user cart
+  userCarts.delete(interaction.user.id);
+
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const secureUrl = `${baseUrl}/s/${token}`;
+
+  const confirmEmbed = new EmbedBuilder()
+    .setTitle(`✅ Order Placed: ${order.code}`)
+    .setColor(0x00ae86)
+    .setDescription(
+      `Your order has been submitted to the admin queue!\n\n` +
+      `🔒 **Secure Credential Submission:**\n` +
+      `To protect your account, **never send passwords in Discord**.\n` +
+      `Please provide your login credentials via this one-time secure link:\n` +
+      `👉 [Submit Credentials Securely](${secureUrl})\n\n` +
+      `*Link expires in 24 hours and can only be used once.*`
+    )
+    .addFields({
+      name: 'Estimated Total',
+      value: `Rp${order.quoteTotal.toLocaleString('id-ID')}`,
+    })
+    .setFooter({ text: 'Status: PENDING · Admin will review shortly' });
+
+  await interaction.update({ embeds: [confirmEmbed], components: [] });
 }

@@ -39,6 +39,7 @@ export interface QuoteLine {
   unitPrice: number;
   totalPrice: number;
   isFinal: boolean;  // true if using real percent instead of stated
+  statedPercent?: number;
 }
 
 export interface Quote {
@@ -105,6 +106,7 @@ function computeLine(item: CatalogItem, cartItem: CartItem): QuoteLine | null {
         unitPrice: price,
         totalPrice: price,
         isFinal: realPercent !== undefined,
+        statedPercent: statedPercent ?? undefined,
       };
     }
 

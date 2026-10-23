@@ -28,7 +28,7 @@ export async function processOutbox(client: Client) {
           const channelId = payload.channelId;
           if (channelId) {
             const channel = await client.channels.fetch(channelId);
-            if (channel && channel.isTextBased()) {
+            if (channel && 'send' in channel && typeof channel.send === 'function') {
               await channel.send(payload.content);
             }
           }

@@ -95,8 +95,8 @@ export async function archiveItem(
       list: 'catalog_items',
       recordId: itemId,
       action: 'ARCHIVE',
-      oldValues,
-      newValues: { archivedAt: now },
+      oldValues: oldValues as any,
+      newValues: { archivedAt: now } as any,
     },
   });
 }
@@ -124,8 +124,8 @@ export async function deleteItem(
       list: 'catalog_items',
       recordId: itemId,
       action: 'DELETE',
-      oldValues,
-      newValues: {},
+      oldValues: oldValues as any,
+      newValues: {} as any,
     },
   });
 }
@@ -149,8 +149,8 @@ export async function restoreItem(
       list: 'catalog_items',
       recordId: itemId,
       action: 'RESTORE',
-      oldValues,
-      newValues: { archivedAt: null },
+      oldValues: oldValues as any,
+      newValues: { archivedAt: null } as any,
     },
   });
 }
@@ -171,8 +171,8 @@ export async function logChange(
       list,
       recordId,
       action,
-      oldValues,
-      newValues,
+      oldValues: oldValues as any,
+      newValues: newValues as any,
     },
   });
 

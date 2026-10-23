@@ -7,16 +7,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { encrypt } from '../../../../core/crypto.js';
+import { encrypt } from '@/core/crypto';
 
 const prisma = new PrismaClient();
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
     const { username, password } = await req.json();
 
     if (!username || !password) {

@@ -24,8 +24,8 @@ import {
   Interaction,
 } from 'discord.js';
 import { PrismaClient } from '@prisma/client';
-import { quote, CartItem, validateCartItem } from '../core/pricing.js';
-import texts from './texts.js';
+import { quote, CartItem, validateCartItem } from '@/core/pricing';
+import texts from '@/bot/texts';
 
 const prisma = new PrismaClient();
 
