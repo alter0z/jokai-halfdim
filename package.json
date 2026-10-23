@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev:bot": "tsx watch src/bot/index.ts",
-    "dev:web": "next dev",
+    "dev:web": "next dev -p 3000",
     "build:bot": "tsc && node --loader ts-node/esm src/bot/index.ts",
     "build:web": "next build",
     "test": "vitest run",
