@@ -1,0 +1,39 @@
+{
+  "name": "jokai-halfdim",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:bot": "tsx watch src/bot/index.ts",
+    "dev:web": "next dev",
+    "build:bot": "tsc && node --loader ts-node/esm src/bot/index.ts",
+    "build:web": "next build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "discord.js": "^14.16.3",
+    "next": "^15.0.3",
+    "postgres": "^3.4.4",
+    "prisma": "^6.2.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.18",
+    "@vitest/coverage-v8": "^2.1.8",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

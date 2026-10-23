@@ -1,0 +1,334 @@
+// Prisma schema for Jokai
+// Run with: npx prisma generate && npx prisma migrate dev
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  discordId     String?  @unique
+  username      String
+  discriminator String?  @default("0")
+  role          UserRole @default(CUSTOMER)
+  blocked       Boolean  @default(false)
+  blockReason   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  orders      Order[]
+  orderEvents OrderEvent[]
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+model Region {
+  id         String    @id @default(cuid())
+  key        String    @unique
+  name       String
+  sort       Int       @default(0)
+  active     Boolean   @default(true)
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Service {
+  id          String      @id @default(cuid())
+  key         String      @unique
+  name        String
+  pricingType PricingType
+  description String?
+  sort        Int         @default(0)
+  active      Boolean     @default(true)
+  archivedAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+enum PricingType {
+  PERCENT
+  FLAT
+  PER_UNIT
+  BUNDLE
+  CUSTOM
+}
+
+model CatalogItem {
+  id          String      @id @default(cuid())
+  serviceKey  String
+  regionKey   String?
+  name        String
+  price       Int
+  pricingType PricingType
+  minCharge   Int?
+  chapter     String?
+  actNumber   String?
+  maxQty      Int?
+  qtyPerChar  Int?
+  discount    Int?
+  sort        Int         @default(0)
+  active      Boolean     @default(true)
+  archivedAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  orderItems  OrderItem[]
+  bundleItems BundleItem[]
+
+  @@unique([serviceKey, regionKey, name])
+}
+
+model BundleItem {
+  id            String       @id @default(cuid())
+  bundleId      String
+  itemId        String
+  qty           Int          @default(1)
+  createdAt     DateTime     @default(now())
+  catalogItem   CatalogItem? @relation(fields: [catalogItemId], references: [id])
+  catalogItemId String?
+}
+
+model Character {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  rarity     Int
+  element    String
+  weapon     String
+  scaling    String?
+  statMinCr  String?
+  statMinCd  String?
+  statEr     String?
+  statEm     String?
+  statAtk    String?
+  statHp     String?
+  statDef    String?
+  talents    String?
+  mainStat   String?
+  sort       Int       @default(0)
+  active     Boolean   @default(true)
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  code            String      @unique
+  customerUserId  String
+  status          OrderStatus @default(DRAFT)
+  quoteTotal      Int
+  adjustment      Int         @default(0)
+  finalTotal      Int?
+  uid             String?
+  server          String?
+  inGameName      String?
+  notes           String?
+  termsAcceptedAt DateTime?
+  threadId        String?
+  acceptedAt      DateTime?
+  startedAt       DateTime?
+  doneAt          DateTime?
+  paymentDueAt    DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  customer      User           @relation(fields: [customerUserId], references: [id])
+  orderItems    OrderItem[]
+  orderEvents   OrderEvent[]
+  payments      Payment[]
+  accountAccess AccountAccess?
+  files         File[]
+  secureLinks   SecureLink[]
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING
+  ACCEPTED
+  DECLINED
+  QUEUED
+  EXPIRED
+  IN_PROGRESS
+  ON_HOLD
+  AWAITING_PAYMENT
+  PAYMENT_REVIEW
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+model OrderItem {
+  id            String    @id @default(cuid())
+  orderId       String
+  catalogItemId String
+  copiedName    String
+  copiedPrice   Int
+  qty           Int       @default(1)
+  statedPercent Int?
+  realPercent   Int?
+  quoteLine     Boolean   @default(true)
+  doneAt        DateTime?
+  removed       Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  catalogItem CatalogItem @relation(fields: [catalogItemId], references: [id])
+}
+
+model OrderEvent {
+  id         String       @id @default(cuid())
+  orderId    String
+  actorId    String?
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  note       String?
+  createdAt  DateTime     @default(now())
+
+  order  Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+}
+
+model Payment {
+  id         String        @id @default(cuid())
+  orderId    String
+  methodType String
+  methodName String
+  amount     Int
+  proofFile  String?
+  status     PaymentStatus @default(PENDING)
+  reviewedAt DateTime?
+  gatewayRef String?
+  createdAt  DateTime      @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+model AccountAccess {
+  id         String    @id @default(cuid())
+  orderId    String    @unique
+  ciphertext String
+  iv         String
+  tag        String
+  keyVersion String    @default("v1")
+  purgedAt   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  order     Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  accessLog AccountAccessLog[]
+}
+
+model AccountAccessLog {
+  id              String         @id @default(cuid())
+  accessId        String
+  action          AccessAction
+  createdAt       DateTime       @default(now())
+  accountAccess   AccountAccess? @relation(fields: [accountAccessId], references: [id])
+  accountAccessId String?
+}
+
+enum AccessAction {
+  VIEW
+  PURGE
+}
+
+model SecureLink {
+  id        String      @id @default(cuid())
+  tokenHash String      @unique
+  orderId   String
+  purpose   LinkPurpose
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime    @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+enum LinkPurpose {
+  LOGIN_FORM
+}
+
+model File {
+  id        String   @id @default(cuid())
+  orderId   String
+  kind      FileKind
+  path      String
+  size      Int
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+enum FileKind {
+  PAYMENT_PROOF
+  BEFORE_SCREENSHOT
+  AFTER_SCREENSHOT
+}
+
+model Outbox {
+  id        String    @id @default(cuid())
+  type      String
+  payload   Json
+  attempts  Int       @default(0)
+  sentAt    DateTime?
+  lastError String?
+  nextRetry DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model PaymentMethod {
+  id            String    @id @default(cuid())
+  type          String
+  name          String
+  accountNumber String
+  accountHolder String
+  qrisImage     String?
+  sort          Int       @default(0)
+  active        Boolean   @default(true)
+  archivedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model CatalogChange {
+  id        String       @id @default(cuid())
+  list      String
+  recordId  String
+  action    ChangeAction
+  oldValues Json?
+  newValues Json
+  createdAt DateTime     @default(now())
+}
+
+enum ChangeAction {
+  CREATE
+  EDIT
+  ARCHIVE
+  RESTORE
+  DELETE
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @default(now())
+}
