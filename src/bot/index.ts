@@ -24,6 +24,7 @@ import {
   handleExplorationModalSubmit,
   handleItemsSelect,
   handleCheckout,
+  handleArchonQuestPage,
   userCarts,
 } from '@/bot/interactions/order';
 import { processOutbox } from '@/bot/jobs/outbox';
@@ -103,6 +104,13 @@ client.on('interactionCreate', async interaction => {
         await handleExplorationModalSubmit(interaction);
       }
     } else if (interaction.isButton()) {
+      // Handle Archon Quest pagination
+      if (interaction.customId.startsWith('archon_quest_page:')) {
+        const page = parseInt(interaction.customId.split(':')[1], 10);
+        await handleArchonQuestPage(interaction, page);
+        return;
+      }
+
       if (interaction.customId === 'cart_checkout') {
         await handleCheckout(interaction);
       } else if (interaction.customId === 'cart_clear') {
