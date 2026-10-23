@@ -43,10 +43,30 @@ export const client = new Client({
   ],
 });
 
-client.on('ready', () => {
+client.on('ready', async () => {
   console.log(`[Bot] Logged in as ${client.user?.tag}`);
   if (client.user) {
     client.user.setActivity('Genshin Piloting (/price)', { type: 3 }); // WATCHING
+  }
+
+  // Register slash commands upon startup
+  const token = process.env.DISCORD_TOKEN;
+  const clientId = process.env.DISCORD_CLIENT_ID;
+  const guildId = process.env.GUILD_ID;
+
+  if (token && clientId) {
+    try {
+      const rest = new REST({ version: '10' }).setToken(token);
+      if (guildId) {
+        await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: allCommands });
+        console.log(`[Bot] Successfully registered ${allCommands.length} slash commands to guild ${guildId}`);
+      } else {
+        await rest.put(Routes.applicationCommands(clientId), { body: allCommands });
+        console.log(`[Bot] Successfully registered ${allCommands.length} global slash commands.`);
+      }
+    } catch (err) {
+      console.error('[Bot] Failed to register slash commands:', err);
+    }
   }
 
   // Start background outbox polling every 5 seconds
@@ -103,12 +123,11 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-export async function registerAllCommands(clientId: string, token: string, guildId?: string) {
-  const rest = new REST({ version: '10' }).setToken(token);
-  if (guildId) {
-    await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: allCommands });
-  } else {
-    await rest.put(Routes.applicationCommands(clientId), { body: allCommands });
+// Standalone runner if executed directly
+if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js')) {
+  const token = process.env.DISCORD_TOKEN;
+  if (token) {
+    client.login(token);
   }
 }
 
