@@ -116,23 +116,116 @@ export async function handleServiceSelect(interaction: StringSelectMenuInteracti
       orderBy: { sort: 'asc' },
     });
 
-    const select = new StringSelectMenuBuilder()
-      .setCustomId('price_select_items')
-      .setPlaceholder('Choose material type...')
-      .setMinValues(1)
-      .setMaxValues(Math.min(items.length, 25))
-      .addOptions(
-        items.map(i => ({
-          label: `${i.name} (Rp${i.price}/item)`,
-          value: i.id,
-        }))
-      );
+    // Discord limit: 25 options per menu, so paginate if needed
+    const pageSize = 24;
+    const totalPages = Math.ceil(items.length / pageSize);
 
-    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
-    await interaction.update({ content: texts.price.selectItems, components: [row] });
+    if (totalPages === 1) {
+      const select = new StringSelectMenuBuilder()
+        .setCustomId('price_select_items')
+        .setPlaceholder('Choose material type...')
+        .setMinValues(1)
+        .setMaxValues(Math.min(items.length, 25))
+        .addOptions(
+          items.map(i => ({
+            label: `${i.name} (Rp${i.price}/item)`,
+            value: i.id,
+          }))
+        );
+
+      const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+      await interaction.update({ content: texts.price.selectItems, components: [row] });
+    } else {
+      // Show page 1 with navigation
+      const page1Items = items.slice(0, pageSize);
+      const select = new StringSelectMenuBuilder()
+        .setCustomId('price_select_items')
+        .setPlaceholder('Choose materials (Page 1)...')
+        .setMinValues(1)
+        .setMaxValues(Math.min(page1Items.length, 25))
+        .addOptions(
+          page1Items.map(i => ({
+            label: `${i.name} (Rp${i.price}/item)`,
+            value: i.id,
+          }))
+        );
+
+      const nextButton = new ButtonBuilder()
+        .setCustomId('material_page:2')
+        .setLabel('Next Page →')
+        .setStyle(ButtonStyle.Primary);
+
+      const row1 = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+      const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(nextButton);
+      await interaction.update({
+        content: `${texts.price.selectItems}\n\n📖 Page 1 of ${totalPages}`,
+        components: [row1, row2],
+      });
+    }
   } else {
     await interaction.update({ content: 'Service coming soon.', components: [] });
   }
+}
+
+/**
+ * Handle Material pagination button clicks
+ */
+export async function handleMaterialPage(interaction: ButtonInteraction, page: number) {
+  const items = await prisma.catalogItem.findMany({
+    where: { serviceKey: 'material', active: true, archivedAt: null },
+    orderBy: { sort: 'asc' },
+  });
+
+  const pageSize = 24;
+  const totalPages = Math.ceil(items.length / pageSize);
+
+  if (page < 1 || page > totalPages) {
+    await interaction.update({ content: 'Invalid page.', components: [] });
+    return;
+  }
+
+  const startIdx = (page - 1) * pageSize;
+  const pageItems = items.slice(startIdx, startIdx + pageSize);
+
+  const select = new StringSelectMenuBuilder()
+    .setCustomId('price_select_items')
+    .setPlaceholder(`Choose materials (Page ${page})...`)
+    .setMinValues(1)
+    .setMaxValues(Math.min(pageItems.length, 25))
+    .addOptions(
+      pageItems.map(i => ({
+        label: `${i.name} (Rp${i.price}/item)`,
+        value: i.id,
+      }))
+    );
+
+  const row1 = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+
+  // Build navigation buttons
+  const navButtons: ButtonBuilder[] = [];
+  if (page > 1) {
+    navButtons.push(
+      new ButtonBuilder()
+        .setCustomId(`material_page:${page - 1}`)
+        .setLabel('← Previous')
+        .setStyle(ButtonStyle.Secondary)
+    );
+  }
+  if (page < totalPages) {
+    navButtons.push(
+      new ButtonBuilder()
+        .setCustomId(`material_page:${page + 1}`)
+        .setLabel('Next Page →')
+        .setStyle(ButtonStyle.Primary)
+    );
+  }
+
+  const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(...navButtons);
+
+  await interaction.update({
+    content: `${texts.price.selectItems}\n\n📖 Page ${page} of ${totalPages}`,
+    components: [row1, row2],
+  });
 }
 
 /**

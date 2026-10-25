@@ -31,6 +31,7 @@ import {
   handleItemsSelect,
   handleCheckout,
   handleArchonQuestPage,
+  handleMaterialPage,
   userCarts,
   sendOrderToChannel,
 } from '@/bot/interactions/order';
@@ -122,6 +123,13 @@ client.on('interactionCreate', async interaction => {
       if (interaction.customId.startsWith('archon_quest_page:')) {
         const page = parseInt(interaction.customId.split(':')[1], 10);
         await handleArchonQuestPage(interaction, page);
+        return;
+      }
+
+      // Handle Material pagination
+      if (interaction.customId.startsWith('material_page:')) {
+        const page = parseInt(interaction.customId.split(':')[1], 10);
+        await handleMaterialPage(interaction, page);
         return;
       }
 
