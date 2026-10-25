@@ -39,7 +39,7 @@ const actRoman: Record<number, string> = {
 async function seed() {
   const xlsxModule = await import('xlsx');
   const xlsx = xlsxModule.default ?? xlsxModule;
-  const xlsxPath = path.join(__dirname, '..', 'jokai.xlsx');
+  const xlsxPath = path.join(__dirname, '..', 'docs', 'jokai.xlsx');
   const workbook = xlsx.readFile(xlsxPath);
 
   console.log('Seeding regions...');
