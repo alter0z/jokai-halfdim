@@ -29,6 +29,7 @@ import {
   handleExplorationAreasSelect,
   handleExplorationModalSubmit,
   handleItemsSelect,
+  handleItemQuantitiesSubmit,
   handleCheckout,
   handleArchonQuestPage,
   handleMaterialPage,
@@ -114,6 +115,8 @@ client.on('interactionCreate', async interaction => {
     } else if (interaction.isModalSubmit()) {
       if (interaction.customId.startsWith('modal_exploration_percents:')) {
         await handleExplorationModalSubmit(interaction);
+      } else if (interaction.customId.startsWith('modal_item_quantities:')) {
+        await handleItemQuantitiesSubmit(interaction);
       } else if (interaction.customId.startsWith('modal_decline_order:')) {
         const orderId = interaction.customId.split(':')[1];
         await handleDeclineOrder(interaction, orderId);

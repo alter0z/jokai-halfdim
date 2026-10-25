@@ -390,12 +390,62 @@ export async function handleExplorationModalSubmit(interaction: ModalSubmitInter
  */
 export async function handleItemsSelect(interaction: StringSelectMenuInteraction) {
   const itemIds = interaction.values;
+  const items = await prisma.catalogItem.findMany({
+    where: { id: { in: itemIds } },
+  });
+
+  // Show modal to input quantities for each item
+  const modal = new ModalBuilder()
+    .setCustomId(`modal_item_quantities:${itemIds.join(',')}`)
+    .setTitle('Enter Quantities');
+
+  const defaultText = items.map(i => `${i.name} = 1`).join('\n');
+
+  const input = new TextInputBuilder()
+    .setCustomId('item_quantities_input')
+    .setLabel('Quantity per item (e.g. Item Name = 5)')
+    .setStyle(TextInputStyle.Paragraph)
+    .setValue(defaultText.substring(0, 4000))
+    .setRequired(true);
+
+  modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(input));
+  await interaction.showModal(modal);
+}
+
+/**
+ * Handle item quantities modal submit
+ */
+export async function handleItemQuantitiesSubmit(interaction: ModalSubmitInteraction) {
+  const customId = interaction.customId;
+  const itemIds = customId.replace('modal_item_quantities:', '').split(',');
+  const input = interaction.fields.getTextInputValue('item_quantities_input');
+
+  const items = await prisma.catalogItem.findMany({
+    where: { id: { in: itemIds } },
+  });
+
+  const lines = input.split('\n');
+  const quantityMap: Record<string, number> = {};
+
+  for (const line of lines) {
+    const parts = line.split('=');
+    if (parts.length >= 2) {
+      const name = parts[0].trim().toLowerCase();
+      const qty = parseInt(parts[1].replace(/[^0-9]/g, ''), 10);
+      if (!isNaN(qty) && qty > 0) {
+        quantityMap[name] = qty;
+      }
+    }
+  }
+
+  // Get or initialize user's cart
   const cart = userCarts.get(interaction.user.id) || [];
 
-  for (const id of itemIds) {
+  for (const item of items) {
+    const stated = quantityMap[item.name.toLowerCase()] ?? 1;
     cart.push({
-      catalogItemId: id,
-      qty: 1,
+      catalogItemId: item.id,
+      qty: Math.max(1, stated),
     });
   }
 
