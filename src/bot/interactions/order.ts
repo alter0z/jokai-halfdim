@@ -30,6 +30,11 @@ const prisma = new PrismaClient();
 export const userCarts = new Map<string, CartItem[]>();
 
 /**
+ * Export prisma for use in other modules
+ */
+export { prisma };
+
+/**
  * Handle service selection
  */
 export async function handleServiceSelect(interaction: StringSelectMenuInteraction) {
@@ -483,4 +488,66 @@ export async function handleCheckout(interaction: ButtonInteraction) {
     .setFooter({ text: 'Status: PENDING · Admin will review shortly' });
 
   await interaction.update({ embeds: [confirmEmbed], components: [] });
+
+  // Send order to the configured order channel
+  await sendOrderToChannel(order, user!, interaction.client);
+}
+
+/**
+ * Send order notification to the configured order channel
+ */
+export async function sendOrderToChannel(
+  order: any,
+  customer: any,
+  client: any
+) {
+  const setting = await prisma.setting.findUnique({
+    where: { key: 'orderChannelId' },
+  });
+
+  const channelId = setting?.value as string | null;
+  if (!channelId) return;
+
+  const channel = await client.channels.fetch(channelId);
+  if (!channel || !channel.isTextBased()) return;
+
+  // Get order items with their details
+  const orderItems = await prisma.orderItem.findMany({
+    where: { orderId: order.id },
+    include: { catalogItem: true },
+  });
+
+  const orderEmbed = new EmbedBuilder()
+    .setTitle(`📋 New Order: ${order.code}`)
+    .setColor(0x5865f2)
+    .setDescription(
+      `**Customer:** ${customer.username} (${customer.discordId ? `<@${customer.discordId}>` : 'N/A'})\n` +
+      `**Status:** 🟡 Pending Review\n` +
+      `**Estimated Total:** Rp${order.quoteTotal.toLocaleString('id-ID')}`
+    )
+    .addFields({
+      name: '📝 Order Items',
+      value:
+        orderItems
+          .map(
+            item =>
+              `• ${item.copiedName} x${item.qty} — Rp${item.copiedPrice.toLocaleString('id-ID')}`
+          )
+          .join('\n') || 'No items',
+    })
+    .setFooter({ text: `Order ID: ${order.id}` })
+    .setTimestamp();
+
+  const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`admin_accept:${order.id}`)
+      .setLabel('Accept')
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId(`admin_decline:${order.id}`)
+      .setLabel('Decline')
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  await channel.send({ embeds: [orderEmbed], components: [actionRow] });
 }
