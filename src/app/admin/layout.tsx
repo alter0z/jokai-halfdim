@@ -42,6 +42,7 @@ export default function AdminLayout({
   };
 
   const navItems = [
+    { label: 'Dashboard', href: '/admin/dashboard', active: pathname.startsWith('/admin/dashboard') },
     { label: 'Orders Queue', href: '/admin/orders', active: pathname.startsWith('/admin/orders') },
     { label: 'Catalog & Pricing', href: '/admin/catalog', active: pathname.startsWith('/admin/catalog') },
     { label: 'Customers', href: '/admin/customers', active: pathname.startsWith('/admin/customers') },
