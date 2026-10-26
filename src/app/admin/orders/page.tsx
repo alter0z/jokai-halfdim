@@ -139,6 +139,50 @@ export default function AdminOrdersPage() {
 
       {error && <div className="p-4 bg-red-50 text-red-700 text-sm rounded-md">{error}</div>}
 
+      {/* KPI Statistics Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Orders</div>
+          <div className="text-2xl font-bold text-gray-900 mt-2">{orders.length}</div>
+          <div className="text-xs text-gray-400 mt-1">All time orders in queue</div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+          <div className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Pending Review</div>
+          <div className="text-2xl font-bold text-amber-700 mt-2">
+            {orders.filter(o => o.status === 'PENDING').length}
+          </div>
+          <div className="text-xs text-gray-400 mt-1">Requires admin acceptance</div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+          <div className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Active / In Progress</div>
+          <div className="text-2xl font-bold text-indigo-700 mt-2">
+            {orders.filter(o => ['ACCEPTED', 'QUEUED', 'IN_PROGRESS'].includes(o.status)).length}
+          </div>
+          <div className="text-xs text-gray-400 mt-1">Currently being piloted</div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+          <div className="text-xs font-semibold text-green-600 uppercase tracking-wider">Completed</div>
+          <div className="text-2xl font-bold text-green-700 mt-2">
+            {orders.filter(o => o.status === 'COMPLETED').length}
+          </div>
+          <div className="text-xs text-gray-400 mt-1">Successfully fulfilled</div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+          <div className="text-xs font-semibold text-purple-600 uppercase tracking-wider">Total Revenue</div>
+          <div className="text-2xl font-bold text-purple-700 mt-2">
+            Rp{orders
+              .filter(o => ['COMPLETED', 'IN_PROGRESS', 'ACCEPTED', 'AWAITING_PAYMENT'].includes(o.status))
+              .reduce((sum, o) => sum + (o.finalTotal || o.quoteTotal || 0), 0)
+              .toLocaleString('id-ID')}
+          </div>
+          <div className="text-xs text-gray-400 mt-1">Estimated order value</div>
+        </div>
+      </div>
+
       {/* Orders Table */}
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
         {loading ? (
