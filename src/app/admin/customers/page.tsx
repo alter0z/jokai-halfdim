@@ -66,8 +66,8 @@ export default function AdminCustomersPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Customer Management</h1>
-          <p className="text-sm text-gray-500">View customer order statistics and manage blacklist</p>
+          <h1 className="text-2xl font-bold text-[#1d1d1f] tracking-tight">Customer Management</h1>
+          <p className="text-xs text-[#6e6e73]">View customer order statistics and manage blacklist</p>
         </div>
         <div className="flex items-center gap-2">
           <input
@@ -76,44 +76,44 @@ export default function AdminCustomersPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && fetchCustomers()}
-            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64"
+            className="px-3.5 py-2 border border-black/[0.08] bg-white/80 backdrop-blur-xl rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64 shadow-sm"
           />
           <button
             onClick={fetchCustomers}
-            className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50"
+            className="px-3.5 py-2 bg-white/80 backdrop-blur-xl border border-black/[0.08] rounded-xl text-xs font-medium hover:bg-black/[0.04] transition-all"
           >
             Search
           </button>
         </div>
       </div>
 
-      {error && <div className="p-4 bg-red-50 text-red-700 text-sm rounded-md">{error}</div>}
+      {error && <div className="p-4 bg-red-50 text-red-700 text-xs rounded-xl">{error}</div>}
 
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-xl border border-black/[0.06] rounded-[28px] shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500 text-sm">Loading customers...</div>
+          <div className="p-8 text-center text-xs text-[#86868b]">Loading customers...</div>
         ) : customers.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 text-sm">No customers found.</div>
+          <div className="p-8 text-center text-xs text-[#86868b]">No customers found.</div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50 text-gray-600 font-semibold text-xs uppercase tracking-wider">
+          <table className="min-w-full divide-y divide-black/[0.06] text-sm">
+            <thead className="bg-black/[0.02] text-[#6e6e73] font-semibold text-[11px] uppercase tracking-wider">
               <tr>
-                <th className="px-6 py-3 text-left">Customer</th>
-                <th className="px-6 py-3 text-left">Discord ID</th>
-                <th className="px-6 py-3 text-left">Orders</th>
-                <th className="px-6 py-3 text-left">Total Spent</th>
-                <th className="px-6 py-3 text-left">Status</th>
-                <th className="px-6 py-3 text-right">Actions</th>
+                <th className="px-6 py-3.5 text-left">Customer</th>
+                <th className="px-6 py-3.5 text-left">Discord ID</th>
+                <th className="px-6 py-3.5 text-left">Orders</th>
+                <th className="px-6 py-3.5 text-left">Total Spent</th>
+                <th className="px-6 py-3.5 text-left">Status</th>
+                <th className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-black/[0.06]">
               {customers.map(c => (
-                <tr key={c.id} className="hover:bg-gray-50 transition">
-                  <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                <tr key={c.id} className="hover:bg-black/[0.02] transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap font-medium text-[#1d1d1f]">
                     <div className="flex items-center space-x-2">
                       <span>{c.username}</span>
                       {c.role === 'ADMIN' && (
-                        <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">
                           ADMIN
                         </span>
                       )}
@@ -124,26 +124,26 @@ export default function AdminCustomersPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-[#86868b]">
                     {c.discordId}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                  <td className="px-6 py-4 whitespace-nowrap text-xs text-[#6e6e73]">
                     {c.totalOrders} order(s)
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap font-mono font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap font-mono font-medium text-[#1d1d1f]">
                     Rp{c.totalSpent.toLocaleString('id-ID')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {c.blocked ? (
-                      <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-800 border border-red-200">
+                      <span className="px-2.5 py-1 text-[11px] font-bold rounded-full bg-red-100 text-red-800 border border-red-200">
                         BLOCKED
                       </span>
                     ) : c.hasUnpaid ? (
-                      <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                      <span className="px-2.5 py-1 text-[11px] font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
                         HAS UNPAID
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-green-100 text-green-800 border border-green-200">
+                      <span className="px-2.5 py-1 text-[11px] font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
                         ACTIVE
                       </span>
                     )}
@@ -151,9 +151,9 @@ export default function AdminCustomersPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <button
                       onClick={() => handleToggleBlock(c.id, c.blocked, c.username)}
-                      className={`px-3 py-1 text-xs font-medium rounded ${
+                      className={`px-3 py-1.5 text-xs font-medium rounded-xl transition-all ${
                         c.blocked
-                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                          ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                           : 'bg-red-50 text-red-700 hover:bg-red-100'
                       }`}
                     >

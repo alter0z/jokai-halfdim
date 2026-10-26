@@ -93,13 +93,13 @@ export default function AdminOrdersPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Orders Queue</h1>
-          <p className="text-sm text-gray-500">Manage incoming requests, active piloting jobs, and invoices</p>
+          <h1 className="text-2xl font-bold text-[#1d1d1f] tracking-tight">Orders Queue</h1>
+          <p className="text-xs text-[#6e6e73]">Manage incoming requests, active piloting jobs, and invoices</p>
         </div>
         <div className="flex items-center gap-2">
           <a
             href="/admin/orders/new"
-            className="px-3 py-1.5 bg-indigo-600 text-white rounded-md text-sm font-semibold hover:bg-indigo-700 shadow-sm whitespace-nowrap"
+            className="px-3.5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 shadow-sm whitespace-nowrap transition-all"
           >
             + New Order
           </a>
@@ -109,11 +109,11 @@ export default function AdminOrdersPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && fetchOrders()}
-            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3.5 py-2 border border-black/[0.08] bg-white/80 backdrop-blur-xl rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
           />
           <button
             onClick={fetchOrders}
-            className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50"
+            className="px-3.5 py-2 bg-white/80 backdrop-blur-xl border border-black/[0.08] rounded-xl text-xs font-medium hover:bg-black/[0.04] transition-all"
           >
             Search
           </button>
@@ -121,15 +121,15 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Status Filter Tabs */}
-      <div className="flex overflow-x-auto pb-2 gap-1.5 border-b border-gray-200 text-xs">
+      <div className="flex overflow-x-auto pb-2 gap-1.5 border-b border-black/[0.06] text-xs">
         {STATUS_FILTERS.map(st => (
           <button
             key={st}
             onClick={() => setStatusFilter(st)}
-            className={`px-3 py-1.5 rounded-md whitespace-nowrap font-medium transition ${
+            className={`px-3.5 py-1.5 rounded-xl whitespace-nowrap font-medium transition-all ${
               statusFilter === st
                 ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-gray-600 hover:bg-gray-100'
+                : 'bg-black/[0.02] text-[#6e6e73] hover:bg-black/[0.06] hover:text-[#1d1d1f]'
             }`}
           >
             {st.replace('_', ' ')}
@@ -137,54 +137,54 @@ export default function AdminOrdersPage() {
         ))}
       </div>
 
-      {error && <div className="p-4 bg-red-50 text-red-700 text-sm rounded-md">{error}</div>}
+      {error && <div className="p-4 bg-red-50 text-red-700 text-xs rounded-xl">{error}</div>}
 
       {/* KPI Statistics Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Orders</div>
-          <div className="text-2xl font-bold text-gray-900 mt-2">{orders.length}</div>
-          <div className="text-xs text-gray-400 mt-1">All time orders in queue</div>
+        <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[24px] border border-black/[0.06] shadow-sm flex flex-col justify-between">
+          <div className="text-xs font-semibold text-[#86868b] uppercase tracking-wider">Total Orders</div>
+          <div className="text-3xl font-bold text-[#1d1d1f] mt-3">{orders.length}</div>
+          <div className="text-[11px] text-[#86868b] mt-1">All time orders in queue</div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[24px] border border-black/[0.06] shadow-sm flex flex-col justify-between">
           <div className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Pending Review</div>
-          <div className="text-2xl font-bold text-amber-700 mt-2">
+          <div className="text-3xl font-bold text-amber-600 mt-3">
             {orders.filter(o => o.status === 'PENDING').length}
           </div>
-          <div className="text-xs text-gray-400 mt-1">Requires admin acceptance</div>
+          <div className="text-[11px] text-amber-700 mt-1">Requires admin acceptance</div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[24px] border border-black/[0.06] shadow-sm flex flex-col justify-between">
           <div className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Active / In Progress</div>
-          <div className="text-2xl font-bold text-indigo-700 mt-2">
+          <div className="text-3xl font-bold text-indigo-600 mt-3">
             {orders.filter(o => ['ACCEPTED', 'QUEUED', 'IN_PROGRESS'].includes(o.status)).length}
           </div>
-          <div className="text-xs text-gray-400 mt-1">Currently being piloted</div>
+          <div className="text-[11px] text-indigo-700 mt-1">Currently being piloted</div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
-          <div className="text-xs font-semibold text-green-600 uppercase tracking-wider">Completed</div>
-          <div className="text-2xl font-bold text-green-700 mt-2">
+        <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[24px] border border-black/[0.06] shadow-sm flex flex-col justify-between">
+          <div className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Completed</div>
+          <div className="text-3xl font-bold text-emerald-600 mt-3">
             {orders.filter(o => o.status === 'COMPLETED').length}
           </div>
-          <div className="text-xs text-gray-400 mt-1">Successfully fulfilled</div>
+          <div className="text-[11px] text-emerald-700 mt-1">Successfully fulfilled</div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white/80 backdrop-blur-xl p-5 rounded-[24px] border border-black/[0.06] shadow-sm flex flex-col justify-between">
           <div className="text-xs font-semibold text-purple-600 uppercase tracking-wider">Total Revenue</div>
-          <div className="text-2xl font-bold text-purple-700 mt-2">
+          <div className="text-2xl font-bold text-purple-700 mt-3">
             Rp{orders
               .filter(o => ['COMPLETED', 'IN_PROGRESS', 'ACCEPTED', 'AWAITING_PAYMENT'].includes(o.status))
               .reduce((sum, o) => sum + (o.finalTotal || o.quoteTotal || 0), 0)
               .toLocaleString('id-ID')}
           </div>
-          <div className="text-xs text-gray-400 mt-1">Estimated order value</div>
+          <div className="text-[11px] text-purple-600 mt-1">Estimated order value</div>
         </div>
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-xl border border-black/[0.06] rounded-[28px] shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-500 text-sm">Loading orders...</div>
         ) : orders.length === 0 ? (
