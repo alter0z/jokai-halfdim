@@ -454,6 +454,35 @@ export async function handleItemQuantitiesSubmit(interaction: ModalSubmitInterac
 }
 
 /**
+ * Handle continue shopping (add more items)
+ */
+export async function handleContinueShopping(interaction: ButtonInteraction) {
+  const services = await prisma.service.findMany({
+    where: { active: true, archivedAt: null },
+    orderBy: { sort: 'asc' },
+  });
+
+  const select = new StringSelectMenuBuilder()
+    .setCustomId('order_select_service')
+    .setPlaceholder('Choose a service to add more items...')
+    .addOptions(
+      services.map(s => ({
+        label: s.name,
+        description: s.description || '',
+        value: s.key,
+      }))
+    );
+
+  const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+
+  await interaction.update({
+    content: '🛒 **Add More Items**\nSelect another service below to add items to your cart:',
+    embeds: [],
+    components: [row],
+  });
+}
+
+/**
  * Render Cart & Quote Embed
  */
 export async function renderCartQuote(
@@ -483,7 +512,7 @@ export async function renderCartQuote(
       quoteResult.lines
         .map(
           l =>
-            `• **${l.name}**: Rp${l.totalPrice.toLocaleString('id-ID')} ${
+            `• **${l.name}** x${l.qty}: Rp${l.unitPrice.toLocaleString('id-ID')} × ${l.qty} = Rp${l.totalPrice.toLocaleString('id-ID')} ${
               l.statedPercent !== undefined ? `(${l.statedPercent}% → 100%)` : ''
             }`
         )
@@ -496,6 +525,10 @@ export async function renderCartQuote(
     .setFooter({ text: 'Customer payment is made AFTER work completion.' });
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId('cart_continue_shopping')
+      .setLabel('➕ Add More Items')
+      .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId('cart_checkout')
       .setLabel('Submit Order (Place in Queue)')

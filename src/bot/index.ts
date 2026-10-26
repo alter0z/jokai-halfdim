@@ -33,6 +33,7 @@ import {
   handleCheckout,
   handleArchonQuestPage,
   handleMaterialPage,
+  handleContinueShopping,
   userCarts,
   sendOrderToChannel,
 } from '@/bot/interactions/order';
@@ -148,6 +149,8 @@ client.on('interactionCreate', async interaction => {
       } else if (interaction.customId === 'cart_clear') {
         userCarts.delete(interaction.user.id);
         await interaction.update({ content: '🛒 Cart cleared.', embeds: [], components: [] });
+      } else if (interaction.customId === 'cart_continue_shopping') {
+        await handleContinueShopping(interaction);
       }
     }
   } catch (error) {
