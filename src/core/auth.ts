@@ -2,7 +2,7 @@
  * Core Authentication utilities for Jokai Halfdim Admin Dashboard
  *
  * Implements cryptographically signed sessions (HMAC-SHA256 via Web Crypto API)
- * compatible across Node.js runtime and Next.js Edge Middleware.
+ * compatible across Node.js runtime and Next.js Edge Middleware (using pure Web APIs).
  */
 
 export const COOKIE_NAME = 'jokai_admin_session';
@@ -23,8 +23,43 @@ export function getAuthSecret(): string {
   return secret;
 }
 
+function base64UrlEncode(str: string): string {
+  const base64 = btoa(unescape(encodeURIComponent(str)));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlDecode(base64url: string): string {
+  let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  return decodeURIComponent(escape(atob(base64)));
+}
+
+function bufferToBase64Url(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlToBuffer(base64url: string): ArrayBuffer {
+  let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
 /**
- * Sign a session payload into a compact token string (base64url.base64url)
+ * Sign a session payload into a compact token string
  */
 export async function createSessionToken(
   payload: Omit<SessionPayload, 'exp'> & { expiresInMs?: number },
@@ -40,7 +75,7 @@ export async function createSessionToken(
   };
 
   const enc = new TextEncoder();
-  const payloadStr = Buffer.from(JSON.stringify(fullPayload)).toString('base64url');
+  const payloadStr = base64UrlEncode(JSON.stringify(fullPayload));
   const data = enc.encode(payloadStr);
 
   const key = await crypto.subtle.importKey(
@@ -52,7 +87,7 @@ export async function createSessionToken(
   );
 
   const sigBuffer = await crypto.subtle.sign('HMAC', key, data);
-  const signature = Buffer.from(sigBuffer).toString('base64url');
+  const signature = bufferToBase64Url(sigBuffer);
 
   return `${payloadStr}.${signature}`;
 }
@@ -83,12 +118,12 @@ export async function verifySessionToken(
       ['verify']
     );
 
-    const sigBuffer = Buffer.from(signatureStr, 'base64url');
+    const sigBuffer = base64UrlToBuffer(signatureStr);
     const isValid = await crypto.subtle.verify('HMAC', key, sigBuffer, data);
 
     if (!isValid) return null;
 
-    const decodedJson = Buffer.from(payloadStr, 'base64url').toString('utf8');
+    const decodedJson = base64UrlDecode(payloadStr);
     const payload: SessionPayload = JSON.parse(decodedJson);
 
     // Check expiration
