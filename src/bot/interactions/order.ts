@@ -557,6 +557,9 @@ export async function handleCheckout(interaction: ButtonInteraction) {
     return;
   }
 
+  // Immediately clear cart to prevent duplicate concurrent checkouts
+  userCarts.delete(interaction.user.id);
+
   // Ensure user exists in database
   let user = await prisma.user.findUnique({
     where: { discordId: interaction.user.id },

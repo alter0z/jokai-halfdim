@@ -213,6 +213,10 @@ async function handleAdminOrderAction(
       return;
     }
 
+    if (interaction.message) {
+      await interaction.message.edit({ components: [] }).catch(() => {});
+    }
+
     await prisma.$transaction(async tx => {
       await tx.order.update({
         where: { id: order.id },
@@ -261,6 +265,10 @@ async function handleAdminOrderAction(
         ephemeral: true,
       });
       return;
+    }
+
+    if (interaction.message) {
+      await interaction.message.edit({ components: [] }).catch(() => {});
     }
 
     // Add a modal to get decline reason
