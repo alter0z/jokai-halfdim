@@ -189,36 +189,41 @@ async function seed() {
   }
 
   console.log('Seeding materials...');
-  const materials = [
-    { name: 'Local Specialty', price: 120, maxQty: 200, qtyPerChar: 168 },
-    { name: 'Enemy Material', price: 150, maxQty: 150, qtyPerChar: 84 },
-    { name: 'Open World', price: 120, maxQty: 200, qtyPerChar: 0 },
-  ];
-  for (let i = 0; i < materials.length; i++) {
-    const m = materials[i];
-    const existing = await prisma.catalogItem.findFirst({
-      where: { serviceKey: 'material', regionKey: null, name: m.name }
-    });
-    if (existing) {
-      await prisma.catalogItem.update({
-        where: { id: existing.id },
-        data: { price: m.price, maxQty: m.maxQty, qtyPerChar: m.qtyPerChar }
-      });
-    } else {
-      await prisma.catalogItem.create({
-        data: {
+  const materialRows: any[][] = xlsx.utils.sheet_to_json(workbook.Sheets['Material'], { header: 1 });
+  let countMaterial = 0;
+  for (let i = 1; i < materialRows.length; i++) {
+    const row = materialRows[i];
+    if (!row || row.length === 0) continue;
+    const nameCol = row[2] ? String(row[2]).trim() : '';
+    const priceCol = typeof row[5] === 'number' ? row[5] : (typeof row[13] === 'number' ? row[13] : 120);
+    const qtyChara = typeof row[6] === 'number' ? row[6] : 168;
+    const maxQty = typeof row[7] === 'number' ? row[7] : 200;
+
+    if (!nameCol) continue;
+
+    await prisma.catalogItem.upsert({
+      where: {
+        serviceKey_regionKey_name: {
           serviceKey: 'material',
-          regionKey: null,
-          name: m.name,
-          price: m.price,
-          pricingType: 'PER_UNIT',
-          maxQty: m.maxQty,
-          qtyPerChar: m.qtyPerChar,
-          sort: i,
+          regionKey: '',
+          name: nameCol,
         }
-      });
-    }
+      },
+      update: { price: priceCol, maxQty, qtyPerChar: qtyChara },
+      create: {
+        serviceKey: 'material',
+        regionKey: null,
+        name: nameCol,
+        price: priceCol,
+        pricingType: 'PER_UNIT',
+        maxQty,
+        qtyPerChar: qtyChara,
+        sort: countMaterial,
+      }
+    });
+    countMaterial++;
   }
+  console.log(`Seeded ${countMaterial} materials`);
 
   console.log('Seeding characters...');
   const charaRows: any[][] = xlsx.utils.sheet_to_json(workbook.Sheets['Chara Data'], { header: 1 });
