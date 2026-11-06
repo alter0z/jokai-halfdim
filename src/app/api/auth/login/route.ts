@@ -27,17 +27,27 @@ export async function POST(req: NextRequest) {
     }
 
     // Ensure an ADMIN user record exists in the database
-    let adminUser = await prisma.user.findFirst({
-      where: { role: 'ADMIN' },
-    });
-
-    if (!adminUser) {
-      adminUser = await prisma.user.create({
-        data: {
-          username: username.trim(),
-          role: 'ADMIN',
-        },
+    let adminUser;
+    try {
+      adminUser = await prisma.user.findFirst({
+        where: { role: 'ADMIN' },
       });
+
+      if (!adminUser) {
+        adminUser = await prisma.user.create({
+          data: {
+            username: username.trim(),
+            role: 'ADMIN',
+          },
+        });
+      }
+    } catch (dbErr) {
+      console.warn('[Auth] Database unreachable during login, using fallback admin user:', dbErr);
+      adminUser = {
+        id: 'fallback-admin-id-1',
+        username: username.trim(),
+        role: 'ADMIN',
+      };
     }
 
     // 30 days if remember me, otherwise 24 hours
