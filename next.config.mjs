@@ -1,7 +1,3 @@
-/**
- * Next.js configuration for Jokai dashboard
- */
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

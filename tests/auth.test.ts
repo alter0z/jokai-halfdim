@@ -1,4 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('../src/db/index.js', () => ({
+  prisma: {
+    user: {
+      findFirst: vi.fn().mockResolvedValue({
+        id: 'mock-admin-id-123',
+        username: 'admin',
+        role: 'ADMIN',
+      }),
+      create: vi.fn().mockResolvedValue({
+        id: 'mock-admin-id-123',
+        username: 'admin',
+        role: 'ADMIN',
+      }),
+    },
+  },
+}));
+
 import { POST as loginHandler } from '../src/app/api/auth/login/route.js';
 import { POST as logoutHandler } from '../src/app/api/auth/logout/route.js';
 import { GET as meHandler } from '../src/app/api/auth/me/route.js';
