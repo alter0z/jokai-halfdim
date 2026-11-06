@@ -185,7 +185,7 @@ export default function AdminCatalogPage() {
           <select
             value={selectedRegion}
             onChange={e => setSelectedRegion(e.target.value)}
-            className="h-10 px-3.5 border border-black/[0.08] rounded-xl text-xs font-semibold bg-white/80 backdrop-blur-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+            className="h-12 px-4 border border-black/[0.08] rounded-2xl text-sm font-semibold bg-white/80 backdrop-blur-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
           >
             <option value="">All Regions</option>
             {regions.map(r => (
@@ -277,7 +277,7 @@ export default function AdminCatalogPage() {
                   placeholder="e.g. Fontaine - Beryl Region 100%"
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
-                  className="mt-1 w-full h-10 px-3.5 border border-black/[0.08] rounded-xl text-xs font-semibold bg-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                  className="mt-1 w-full h-12 px-4 border border-black/[0.08] rounded-2xl text-sm font-semibold bg-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                 />
               </div>
 
@@ -287,7 +287,7 @@ export default function AdminCatalogPage() {
                   <select
                     value={selectedRegion}
                     onChange={e => setSelectedRegion(e.target.value)}
-                    className="mt-1 w-full h-10 px-3.5 border border-black/[0.08] rounded-xl text-xs font-semibold bg-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                    className="mt-1 w-full h-12 px-4 border border-black/[0.08] rounded-2xl text-sm font-semibold bg-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                   >
                     <option value="">Select Region</option>
                     {regions.map(r => (
@@ -309,7 +309,7 @@ export default function AdminCatalogPage() {
                     step="1000"
                     value={newPrice}
                     onChange={e => setNewPrice(parseInt(e.target.value, 10) || 0)}
-                    className="mt-1 w-full h-10 px-3.5 border border-black/[0.08] rounded-xl text-xs font-bold bg-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                    className="mt-1 w-full h-12 px-4 border border-black/[0.08] rounded-2xl text-sm font-bold bg-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                   />
                 </div>
 
@@ -321,7 +321,7 @@ export default function AdminCatalogPage() {
                     step="1000"
                     value={newMinCharge}
                     onChange={e => setNewMinCharge(parseInt(e.target.value, 10) || 0)}
-                    className="mt-1 w-full h-10 px-3.5 border border-black/[0.08] rounded-xl text-xs font-bold bg-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                    className="mt-1 w-full h-12 px-4 border border-black/[0.08] rounded-2xl text-sm font-bold bg-white/80 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                   />
                 </div>
               </div>
