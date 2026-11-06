@@ -25,3 +25,6 @@ uploads/
 .prisma/
 .env.production.local
 .vercel/
+pgdata/
+logfile
+

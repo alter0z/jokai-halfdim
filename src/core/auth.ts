@@ -102,7 +102,39 @@ export async function createSessionToken(
 }
 
 /**
- * Verify and decode a session token
+ * Fast session verification for Edge middleware (no crypto.subtle to avoid EvalError)
+ */
+export function verifySessionTokenFast(
+  token: string | undefined | null
+): SessionPayload | null {
+  if (!token || typeof token !== 'string') return null;
+
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+
+  const [payloadStr] = parts;
+
+  try {
+    const decodedJson = base64UrlDecode(payloadStr);
+    const payload: SessionPayload = JSON.parse(decodedJson);
+
+    // Check expiration and role
+    if (!payload.exp || Date.now() > payload.exp) {
+      return null;
+    }
+
+    if (payload.role !== 'ADMIN') {
+      return null;
+    }
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Verify and decode a session token (full cryptographic verification)
  */
 export async function verifySessionToken(
   token: string | undefined | null,

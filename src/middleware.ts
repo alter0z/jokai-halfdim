@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySessionToken, COOKIE_NAME } from '@/core/auth';
+import { verifySessionTokenFast, COOKIE_NAME } from '@/core/auth';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -7,7 +7,7 @@ export async function middleware(req: NextRequest) {
 
   // Protect all /admin routes
   if (pathname.startsWith('/admin')) {
-    const session = await verifySessionToken(token);
+    const session = verifySessionTokenFast(token);
 
     if (!session) {
       const loginUrl = new URL('/login', req.url);
@@ -20,7 +20,7 @@ export async function middleware(req: NextRequest) {
 
   // If visiting /login while already authenticated, redirect to /admin/orders
   if (pathname === '/login') {
-    const session = await verifySessionToken(token);
+    const session = verifySessionTokenFast(token);
     if (session) {
       return NextResponse.redirect(new URL('/admin/orders', req.url));
     }
